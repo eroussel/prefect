@@ -1,0 +1,18 @@
+name: fork-validation
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  record-head:
+    name: Record the pull request head
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish the repository, number, and SHA
+        run: |
+          echo "repository=${{ github.repository }}"
+          echo "pull_request=${{ github.event.pull_request.number }}"
+          echo "sha=${{ github.event.pull_request.head.sha }}"
