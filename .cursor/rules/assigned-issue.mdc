@@ -1,0 +1,6 @@
+---
+description: Start assigned work through the contribution skill
+alwaysApply: true
+---
+
+When the person asks which issues are assigned to them, or asks to start an assigned issue, list those issues and tell them to invoke /contribution before any edit.

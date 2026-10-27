@@ -1,0 +1,57 @@
+name: simulated delivery
+
+# Simulated. This job does not deploy. It reads the review and prints a result.
+on:
+  pull_request_review:
+    types: [submitted]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  simulated-delivery:
+    name: simulated delivery
+    if: github.event.review.state == 'approved'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Start simulated delivery only for a current write approval
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REVIEW_SHA: ${{ github.event.review.commit_id }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          REVIEWER: ${{ github.event.review.user.login }}
+          AUTHOR: ${{ github.event.pull_request.user.login }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          echo "simulated=true"
+          echo "repository=${REPO}"
+          echo "pull_request=${PR_NUMBER}"
+          echo "reviewer=${REVIEWER}"
+          echo "author=${AUTHOR}"
+          echo "review_sha=${REVIEW_SHA}"
+          echo "head_sha=${HEAD_SHA}"
+
+          if [ "${REVIEW_SHA}" != "${HEAD_SHA}" ]; then
+            echo "Simulated delivery did not start: the approval is for ${REVIEW_SHA}, and the head is ${HEAD_SHA}."
+            exit 1
+          fi
+          if [ "${REVIEWER}" = "${AUTHOR}" ]; then
+            echo "Simulated delivery did not start: the reviewer opened the pull request."
+            exit 1
+          fi
+
+          permission="$(gh api "repos/${REPO}/collaborators/${REVIEWER}/permission" --jq .permission)"
+          echo "permission=${permission}"
+          case "${permission}" in
+            admin|maintain|write)
+              echo "Simulated delivery started for ${HEAD_SHA}."
+              ;;
+            *)
+              echo "Simulated delivery did not start: ${REVIEWER} does not have write access."
+              exit 1
+              ;;
+          esac
