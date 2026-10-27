@@ -6,7 +6,6 @@ on:
       - src/prefect/cli/automation.py
       - tests/events/client/cli/test_automations.py
       - scripts/contribution_gate.py
-      - .github/workflows/contribution-gate.yml
 
 permissions:
   contents: read
