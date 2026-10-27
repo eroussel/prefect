@@ -72,7 +72,9 @@ def _loop_rereads(node: ast.AST, inside_loop: bool) -> bool:
         inside_loop = True
     if inside_loop and _reads_automations_from_start(node):
         return True
-    return any(_loop_rereads(child, inside_loop) for child in ast.iter_child_nodes(node))
+    return any(
+        _loop_rereads(child, inside_loop) for child in ast.iter_child_nodes(node)
+    )
 
 
 def delete_all_rereads() -> bool:
@@ -112,9 +114,7 @@ def main() -> int:
 
     extra = sorted(set(changed) - ALLOWED)
     if extra:
-        failures.append(
-            "Changed files outside the allowed paths: " + ", ".join(extra)
-        )
+        failures.append("Changed files outside the allowed paths: " + ", ".join(extra))
     else:
         listed = ", ".join(changed) if changed else "none"
         report(f"Allowed paths: {listed}")
