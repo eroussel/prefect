@@ -6,32 +6,10 @@ env:
   PY_COLORS: 1
 
 on:
-  # repository_dispatch executes the workflow definition from the default branch.
-  repository_dispatch:
-    types:
-      - logfire-test-profile
-  pull_request:
-    paths:
-      - .github/workflows/python-tests.yaml
-      - "src/prefect/**/*.py"
-      - "tests/**/*.py"
-      - pyproject.toml
-      - uv.lock
-      - Dockerfile
-      - scripts/entrypoint.sh
-      - scripts/verify_test_selection.py
-  push:
-    branches:
-      - main
-    paths:
-      - .github/workflows/python-tests.yaml
-      - "src/prefect/**/*.py"
-      - "tests/**/*.py"
-      - pyproject.toml
-      - uv.lock
-      - Dockerfile
-      - scripts/entrypoint.sh
-      - scripts/verify_test_selection.py
+  # Demo fork: automatic CI disabled. PRs use contribution-gate.yml instead.
+  # Re-enable upstream triggers when syncing back to PrefectHQ/prefect.
+  workflow_dispatch:
+
 permissions:
   contents: read
   actions: write

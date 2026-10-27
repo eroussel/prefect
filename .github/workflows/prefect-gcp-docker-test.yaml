@@ -1,11 +1,9 @@
 name: Prefect GCP Docker Test Build
 
 on:
-  pull_request:
-    paths:
-      - "src/integrations/prefect-gcp/Dockerfile"
-      - ".github/workflows/prefect-gcp-docker-images.yaml"
-      - ".github/workflows/prefect-gcp-docker-test.yaml"
+  # Demo fork: automatic CI disabled. PRs use contribution-gate.yml instead.
+  # Re-enable upstream triggers when syncing back to PrefectHQ/prefect.
+  workflow_dispatch:
 
 jobs:
   get-versions:

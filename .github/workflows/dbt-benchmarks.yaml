@@ -4,16 +4,9 @@ env:
   PY_COLORS: 1
 
 on:
-  pull_request:
-    paths:
-      - .github/workflows/dbt-benchmarks.yaml
-      - "src/integrations/prefect-dbt/**"
-  push:
-    branches:
-      - main
-    paths:
-      - .github/workflows/dbt-benchmarks.yaml
-      - "src/integrations/prefect-dbt/**"
+  # Demo fork: automatic CI disabled. PRs use contribution-gate.yml instead.
+  # Re-enable upstream triggers when syncing back to PrefectHQ/prefect.
+  workflow_dispatch:
 
 permissions:
   contents: read

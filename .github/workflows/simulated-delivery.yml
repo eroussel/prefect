@@ -2,8 +2,9 @@ name: simulated delivery
 
 # Simulated. This job does not deploy. It reads the review and prints a result.
 on:
-  pull_request_review:
-    types: [submitted]
+  # Demo fork: automatic CI disabled. PRs use contribution-gate.yml instead.
+  # Re-enable upstream triggers when syncing back to PrefectHQ/prefect.
+  workflow_dispatch:
 
 permissions:
   contents: read

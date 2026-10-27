@@ -1,19 +1,9 @@
 name: TLA+ model check
 
 on:
+  # Demo fork: automatic CI disabled. PRs use contribution-gate.yml instead.
+  # Re-enable upstream triggers when syncing back to PrefectHQ/prefect.
   workflow_dispatch:
-
-  pull_request:
-    paths:
-      - .github/workflows/tla-plus.yaml
-      - "formal/tla/**"
-
-  push:
-    branches:
-      - main
-    paths:
-      - .github/workflows/tla-plus.yaml
-      - "formal/tla/**"
 
 permissions:
   contents: read

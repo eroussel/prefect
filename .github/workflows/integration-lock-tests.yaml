@@ -1,10 +1,9 @@
 name: Integration lock automation tests
 on:
-  pull_request:
-    paths:
-      - '.github/workflows/*integrati*.yaml'
-      - 'scripts/update_uv_lock_integrations.py'
-      - 'scripts/tests/test_update_uv_lock_integrations.py'
+  # Demo fork: automatic CI disabled. PRs use contribution-gate.yml instead.
+  # Re-enable upstream triggers when syncing back to PrefectHQ/prefect.
+  workflow_dispatch:
+
 permissions:
   contents: read
 jobs:

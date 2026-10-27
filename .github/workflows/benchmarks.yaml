@@ -4,18 +4,9 @@ env:
   PY_COLORS: 1
 
 on:
-  pull_request:
-    paths:
-      - .github/workflows/benchmarks.yaml
-      - .github/workflows/python-tests.yaml
-      - benches/cli-bench.toml
-      - "src/prefect/**/*.py"
-      - pyproject.toml
-      - uv.lock
-      - Dockerfile
-  push:
-    branches:
-      - main
+  # Demo fork: automatic CI disabled. PRs use contribution-gate.yml instead.
+  # Re-enable upstream triggers when syncing back to PrefectHQ/prefect.
+  workflow_dispatch:
 
 permissions:
   contents: read

@@ -4,16 +4,8 @@ env:
   PY_COLORS: 1
 
 on:
-  pull_request:
-    paths:
-      - .github/workflows/codspeed-benchmarks.yaml
-      - .github/workflows/python-tests.yaml
-      - "src/prefect/**/*.py"
-      - pyproject.toml
-      - Dockerfile
-  push:
-    branches:
-      - main
+  # Demo fork: automatic CI disabled. PRs use contribution-gate.yml instead.
+  # Re-enable upstream triggers when syncing back to PrefectHQ/prefect.
   workflow_dispatch:
 
 permissions:

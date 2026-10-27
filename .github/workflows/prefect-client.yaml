@@ -1,30 +1,9 @@
 name: Verify prefect-client build
 
 on:
-  pull_request:
-    paths:
-      - client/*
-      - src/prefect/**/*.py
-      - pyproject.toml
-      - .github/workflows/prefect-client.yaml
-  push:
-    branches:
-      - main
-    paths:
-      - client/*
-      - src/prefect/**/*.py
-      - pyproject.toml
-      - .github/workflows/prefect-client.yaml
-  workflow_call:
-    inputs:
-      upload-artifacts:
-        description: "Whether or not to upload artifacts created in this workflow"
-        default: false
-        type: boolean
-      artifact-name:
-        description: "The name for the build prefect-client artifact"
-        default: "prefect-client-pypi-dists"
-        type: string
+  # Demo fork: automatic CI disabled. PRs use contribution-gate.yml instead.
+  # Re-enable upstream triggers when syncing back to PrefectHQ/prefect.
+  workflow_dispatch:
 
 jobs:
   prefect-client-smoke-test:
