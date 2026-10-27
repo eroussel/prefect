@@ -1,40 +1,9 @@
 name: Windows Tests
 
 on:
-  workflow_dispatch: {}
-  pull_request:
-    paths:
-      - "pyproject.toml"
-      - "src/prefect/futures.py"
-      - "src/prefect/filesystems.py"
-      - "src/prefect/utilities/filesystem/**"
-      - "tests/test_filesystems.py"
-      - "tests/utilities/test_filesystem.py"
-      - "src/prefect/testing/**/*.py"
-      - "tests/test_futures.py"
-      - "tests/testing/**/*.py"
-      - "src/prefect/utilities/processutils/**/*.py"
-      - "src/prefect/cli/_prompts.py"
-      - "src/prefect/cli/work_pool.py"
-      - "src/prefect/flows.py"
-      - "src/prefect/runner/runner.py"
-      - "src/prefect/runner/_starter_engine.py"
-      - "src/prefect/cli/server.py"
-      - "src/prefect/workers/base.py"
-      - "src/prefect/workers/process.py"
-      - "src/prefect/infrastructure/provisioners/container_instance.py"
-      - "src/prefect/locking/**"
-      - "scripts/test_unc_paths.py"
-      - "tests/cli/test_prompts.py"
-      - "tests/cli/test_work_pool.py"
-      - "tests/infrastructure/provisioners/test_azure_cli.py"
-      - "tests/locking/**"
-      - "tests/runner/test__starter_engine.py"
-      - "tests/runner/test_runner.py"
-      - "tests/test_infrastructure_bound_flow.py"
-      - "tests/utilities/test_processutils.py"
-      - "tests/workers/test_base_worker.py"
-      - ".github/workflows/windows-tests.yaml"
+  # Demo fork: automatic CI disabled. PRs use contribution-gate.yml instead.
+  # Re-enable upstream triggers when syncing back to PrefectHQ/prefect.
+  workflow_dispatch:
 
 permissions: {}
 

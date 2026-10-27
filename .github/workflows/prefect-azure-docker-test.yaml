@@ -1,11 +1,9 @@
 name: Prefect Azure Docker Test Build
 
 on:
-  pull_request:
-    paths:
-      - "src/integrations/prefect-azure/Dockerfile"
-      - ".github/workflows/prefect-azure-docker-images.yaml"
-      - ".github/workflows/prefect-azure-docker-test.yaml"
+  # Demo fork: automatic CI disabled. PRs use contribution-gate.yml instead.
+  # Re-enable upstream triggers when syncing back to PrefectHQ/prefect.
+  workflow_dispatch:
 
 jobs:
   get-versions:

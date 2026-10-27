@@ -1,11 +1,9 @@
 name: Ensure JSON views are valid on PR
 on:
-  pull_request:
-    branches:
-      - main
-    paths:
-      - ".github/workflows/validate_worker_metadata.yaml"
-      - "src/prefect/server/api/collections_data/views/*.json"
+  # Demo fork: automatic CI disabled. PRs use contribution-gate.yml instead.
+  # Re-enable upstream triggers when syncing back to PrefectHQ/prefect.
+  workflow_dispatch:
+
 jobs:
   submit-update-pr:
     name: Run JSON schema validation against all views

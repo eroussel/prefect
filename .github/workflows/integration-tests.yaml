@@ -3,27 +3,9 @@
 
 name: Integration tests
 on:
-  pull_request:
-    paths:
-      - .github/workflows/integration-tests.yaml
-      - "src/prefect/**/*.py"
-      - pyproject.toml
-      - ui/**
-      - .nvmrc
-      - Dockerfile
-      - .github/docker/old-sqlite.Dockerfile
-      - integration-tests/*
-  push:
-    branches:
-      - main
-    paths:
-      - .github/workflows/integration-tests.yaml
-      - "**/*.py"
-      - pyproject.toml
-      - ui/**
-      - .nvmrc
-      - Dockerfile
-      - .github/docker/old-sqlite.Dockerfile
+  # Demo fork: automatic CI disabled. PRs use contribution-gate.yml instead.
+  # Re-enable upstream triggers when syncing back to PrefectHQ/prefect.
+  workflow_dispatch:
 
 jobs:
   compatibility-tests:

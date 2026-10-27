@@ -1,19 +1,9 @@
 name: Docs broken link check
 
 on:
+  # Demo fork: automatic CI disabled. PRs use contribution-gate.yml instead.
+  # Re-enable upstream triggers when syncing back to PrefectHQ/prefect.
   workflow_dispatch:
-
-  pull_request:
-    paths:
-      - .github/workflows/docs-broken-links.yaml
-      - "docs/**"
-
-  push:
-    branches:
-      - main
-    paths:
-      - .github/workflows/docs-broken-links.yaml
-      - "docs/**"
 
 permissions:
   contents: read

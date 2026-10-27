@@ -4,20 +4,9 @@
 
 name: Proxy Test
 on:
-  pull_request:
-    paths:
-      - .github/workflows/proxy-test.yaml
-      - scripts/proxy-test/*
-      - "src/prefect/events/clients.py"
-      - pyproject.toml
-  push:
-    branches:
-      - main
-    paths:
-      - .github/workflows/proxy-test.yaml
-      - scripts/proxy-test/*
-      - "src/prefect/events/clients.py"
-      - pyproject.toml
+  # Demo fork: automatic CI disabled. PRs use contribution-gate.yml instead.
+  # Re-enable upstream triggers when syncing back to PrefectHQ/prefect.
+  workflow_dispatch:
 
 jobs:
   proxy-test:

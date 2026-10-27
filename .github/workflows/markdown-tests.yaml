@@ -7,24 +7,9 @@ env:
   UV_SYSTEM_PYTHON: 1
 
 on:
+  # Demo fork: automatic CI disabled. PRs use contribution-gate.yml instead.
+  # Re-enable upstream triggers when syncing back to PrefectHQ/prefect.
   workflow_dispatch:
-
-  pull_request:
-    paths:
-      - .github/workflows/markdown-tests.yaml
-      - "docs/**"
-      - pyproject.toml
-      - Dockerfile
-
-  push:
-    branches:
-      - main
-    paths:
-      - .github/workflows/markdown-tests.yaml
-      - "src/prefect/**/*.py"
-      - "tests/**/*.py"
-      - pyproject.toml
-      - Dockerfile
 
 permissions:
   contents: read
