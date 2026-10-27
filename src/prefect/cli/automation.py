@@ -4,7 +4,6 @@ Automation command — native cyclopts implementation.
 Manage automations.
 """
 
-import asyncio
 from pathlib import Path
 from typing import Annotated, Optional
 from uuid import UUID
@@ -333,32 +332,31 @@ async def delete(
                 exit_with_error(
                     "Cannot provide an automation name or id when deleting all automations."
                 )
-            automations = await client.read_automations()
-            if len(automations) == 0:
+            total = 0
+            while page := await client.read_automations(offset=total):
+                total += len(page)
+            if total == 0:
                 exit_with_success("No automations found.")
 
             if _cli.is_interactive():
                 from prefect.cli._prompts import confirm
 
                 if not confirm(
-                    f"Are you sure you want to delete all {len(automations)} automations?",
+                    f"Are you sure you want to delete all {total} automations?",
                     default=False,
                     console=_cli.console,
                 ):
                     exit_with_error("Deletion aborted.")
 
-            semaphore = asyncio.Semaphore(10)
+            # Deleting shifts later pages, so each pass reads from the start.
+            deleted = 0
+            while page := await client.read_automations():
+                for automation in page:
+                    await client.delete_automation(automation.id)
+                deleted += len(page)
 
-            async def limited_delete(automation_id):
-                async with semaphore:
-                    await client.delete_automation(automation_id)
-
-            await asyncio.gather(
-                *[limited_delete(automation.id) for automation in automations]
-            )
-
-            plural = "" if len(automations) == 1 else "s"
-            exit_with_success(f"Deleted {len(automations)} automation{plural}.")
+            plural = "" if deleted == 1 else "s"
+            exit_with_success(f"Deleted {deleted} automation{plural}.")
 
         if not id and not name:
             exit_with_error("Please provide either a name or an id.")

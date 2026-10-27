@@ -933,7 +933,18 @@ def test_deleting_all_automations(
     read_automations: mock.AsyncMock,
     various_automations: List[Automation],
 ):
-    read_automations.return_value = various_automations
+    remaining = list(various_automations)
+
+    async def read_page(self, *args, offset: int = 0, **kwargs):
+        if offset:
+            return []
+        return list(remaining)
+
+    async def delete_one(self, automation_id, *args, **kwargs):
+        remaining[:] = [row for row in remaining if row.id != automation_id]
+
+    read_automations.side_effect = read_page
+    delete_automation.side_effect = delete_one
     invoke_and_assert(
         ["automations", "delete", "--all"],
         prompts_and_responses=[
@@ -949,12 +960,91 @@ def test_deleting_all_automations(
     assert delete_automation.await_count == len(various_automations)
 
 
+def test_deleting_all_automations_continues_past_the_first_page(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """Delete every automation when a read without ``limit`` returns one page.
+
+    The fake returns at most two rows when ``limit`` is omitted, standing in
+    for ``PREFECT_SERVER_API_DEFAULT_LIMIT``. Three automations share the name
+    ``daily``, so the third begins on the next page. Deletion has to re-read
+    from the start until none remain.
+    """
+    from prefect.client.orchestration import PrefectClient
+
+    page_size = 2
+    remaining = [
+        Automation(
+            id=UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"),
+            name="daily",
+            trigger=EventTrigger(
+                posture=Posture.Reactive, expect={"event.one"}, threshold=1
+            ),
+            actions=[DoNothing()],
+        ),
+        Automation(
+            id=UUID("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"),
+            name="daily",
+            trigger=EventTrigger(
+                posture=Posture.Reactive, expect={"event.one"}, threshold=1
+            ),
+            actions=[DoNothing()],
+        ),
+        Automation(
+            id=UUID("cccccccc-cccc-cccc-cccc-cccccccccccc"),
+            name="daily",
+            trigger=EventTrigger(
+                posture=Posture.Reactive, expect={"event.one"}, threshold=1
+            ),
+            actions=[DoNothing()],
+        ),
+    ]
+    reads: list[tuple[int | None, int]] = []
+
+    async def read_automations(
+        self: PrefectClient,
+        *,
+        automations: object = None,
+        sort: object = None,
+        limit: int | None = None,
+        offset: int = 0,
+        **kwargs: object,
+    ) -> list[Automation]:
+        reads.append((limit, offset))
+        effective_limit = page_size if limit is None else min(limit, page_size)
+        return list(remaining[offset : offset + effective_limit])
+
+    async def delete_one(self: PrefectClient, automation_id: UUID) -> None:
+        remaining[:] = [row for row in remaining if row.id != automation_id]
+
+    monkeypatch.setattr(PrefectClient, "read_automations", read_automations)
+    monkeypatch.setattr(PrefectClient, "delete_automation", delete_one)
+
+    invoke_and_assert(
+        ["automations", "delete", "--all"],
+        prompts_and_responses=[
+            ("Are you sure you want to delete all 3 automations?", "y"),
+        ],
+        expected_code=0,
+        expected_output_contains="Deleted 3 automations.",
+    )
+
+    assert remaining == []
+    assert reads[0] == (None, 0)
+    assert len(reads) > 1
+
+
 def test_deleting_all_automations_aborted(
     delete_automation: mock.AsyncMock,
     read_automations: mock.AsyncMock,
     various_automations: List[Automation],
 ):
-    read_automations.return_value = various_automations
+    async def read_page(self, *args, offset: int = 0, **kwargs):
+        if offset:
+            return []
+        return various_automations
+
+    read_automations.side_effect = read_page
     invoke_and_assert(
         ["automations", "delete", "--all"],
         prompts_and_responses=[
