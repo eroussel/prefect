@@ -928,12 +928,42 @@ def test_creating_multiple_automations_with_partial_failure(
     assert create_automation.await_count == 2
 
 
+def _serve_automation_pages(
+    read_automations: mock.AsyncMock,
+    automations: list[Automation],
+    *,
+    delete_automation: mock.AsyncMock | None = None,
+    page_size: int | None = None,
+) -> list[Automation]:
+    """Return offset pages, and drop a row once its id is deleted."""
+    remaining = list(automations)
+
+    def read(self: object, *, offset: int = 0, **kwargs: object) -> list[Automation]:
+        page = remaining[offset:]
+        if page_size is not None:
+            page = page[:page_size]
+        return page
+
+    read_automations.side_effect = read
+    if delete_automation is not None:
+
+        def delete(self: object, automation_id: UUID) -> None:
+            remaining[:] = [item for item in remaining if item.id != automation_id]
+
+        delete_automation.side_effect = delete
+    return remaining
+
+
 def test_deleting_all_automations(
     delete_automation: mock.AsyncMock,
     read_automations: mock.AsyncMock,
     various_automations: List[Automation],
 ):
-    read_automations.return_value = various_automations
+    _serve_automation_pages(
+        read_automations,
+        various_automations,
+        delete_automation=delete_automation,
+    )
     invoke_and_assert(
         ["automations", "delete", "--all"],
         prompts_and_responses=[
@@ -949,12 +979,50 @@ def test_deleting_all_automations(
     assert delete_automation.await_count == len(various_automations)
 
 
+def test_deleting_all_automations_continues_past_the_first_page(
+    delete_automation: mock.AsyncMock,
+    read_automations: mock.AsyncMock,
+):
+    automations = [
+        Automation(
+            id=UUID(f"00000000-0000-0000-0000-00000000000{index}"),
+            name=f"paged-automation-{index}",
+            trigger=EventTrigger(
+                posture=Posture.Reactive, expect={"event.page"}, threshold=1
+            ),
+            actions=[DoNothing()],
+        )
+        for index in range(1, 4)
+    ]
+    remaining = _serve_automation_pages(
+        read_automations,
+        automations,
+        delete_automation=delete_automation,
+        page_size=2,
+    )
+
+    invoke_and_assert(
+        ["automations", "delete", "--all"],
+        prompts_and_responses=[
+            (
+                f"Are you sure you want to delete all {len(automations)} automations?",
+                "y",
+            )
+        ],
+        expected_code=0,
+        expected_output_contains=[f"Deleted {len(automations)} automations."],
+    )
+
+    assert remaining == []
+    assert delete_automation.await_count == len(automations)
+
+
 def test_deleting_all_automations_aborted(
     delete_automation: mock.AsyncMock,
     read_automations: mock.AsyncMock,
     various_automations: List[Automation],
 ):
-    read_automations.return_value = various_automations
+    _serve_automation_pages(read_automations, various_automations)
     invoke_and_assert(
         ["automations", "delete", "--all"],
         prompts_and_responses=[
