@@ -1,16 +1,14 @@
 import sys
 from datetime import timedelta
-from typing import TYPE_CHECKING, Generator, List
+from typing import Any, Generator, List
 from unittest import mock
 from uuid import UUID, uuid4
-
-if TYPE_CHECKING:
-    from prefect.client.orchestration import PrefectClient
 
 import orjson
 import pytest
 import yaml
 
+from prefect.client.orchestration import PrefectClient
 from prefect.events.actions import CancelFlowRun, DoNothing, PauseAutomation
 from prefect.events.schemas.automations import (
     Automation,
@@ -928,12 +926,41 @@ def test_creating_multiple_automations_with_partial_failure(
     assert create_automation.await_count == 2
 
 
+def _automations_that_shrink(
+    read_automations: mock.AsyncMock,
+    delete_automation: mock.AsyncMock,
+    automations: list[Automation],
+) -> None:
+    """Honor offset, and drop rows as deletes land, so --all paging loops end."""
+    remaining = list(automations)
+
+    def read(
+        self: object,
+        *,
+        offset: int = 0,
+        limit: int | None = None,
+        **kwargs: object,
+    ) -> list[Automation]:
+        page = remaining[offset:]
+        if limit is not None:
+            page = page[:limit]
+        return list(page)
+
+    def delete(self: object, automation_id: UUID) -> None:
+        remaining[:] = [
+            automation for automation in remaining if automation.id != automation_id
+        ]
+
+    read_automations.side_effect = read
+    delete_automation.side_effect = delete
+
+
 def test_deleting_all_automations(
     delete_automation: mock.AsyncMock,
     read_automations: mock.AsyncMock,
     various_automations: List[Automation],
 ):
-    read_automations.return_value = various_automations
+    _automations_that_shrink(read_automations, delete_automation, various_automations)
     invoke_and_assert(
         ["automations", "delete", "--all"],
         prompts_and_responses=[
@@ -954,7 +981,7 @@ def test_deleting_all_automations_aborted(
     read_automations: mock.AsyncMock,
     various_automations: List[Automation],
 ):
-    read_automations.return_value = various_automations
+    _automations_that_shrink(read_automations, delete_automation, various_automations)
     invoke_and_assert(
         ["automations", "delete", "--all"],
         prompts_and_responses=[
@@ -1018,6 +1045,55 @@ def test_deleting_all_automations_with_id_errors(
     )
 
     delete_automation.assert_not_called()
+
+
+@pytest.fixture
+def small_automation_pages(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Serve automations two at a time, the same page cut as deployment delete."""
+    original_read_automations = PrefectClient.read_automations
+
+    async def read_automations(
+        self: PrefectClient, *, offset: int = 0, **kwargs: Any
+    ) -> list[Automation]:
+        rows = await original_read_automations(self, **kwargs)
+        return rows[offset : offset + 2]
+
+    monkeypatch.setattr(PrefectClient, "read_automations", read_automations)
+
+
+@pytest.fixture
+async def five_automations(prefect_client: PrefectClient) -> None:
+    for i in range(5):
+        await prefect_client.create_automation(
+            AutomationCore(
+                name=f"paged-automation-{i}",
+                description="Created for paging coverage",
+                enabled=True,
+                trigger=EventTrigger(
+                    posture=Posture.Reactive,
+                    expect={f"event.page.{i}"},
+                    threshold=1,
+                ),
+                actions=[DoNothing()],
+            )
+        )
+
+
+@pytest.mark.clear_db
+@pytest.mark.usefixtures("five_automations", "small_automation_pages")
+async def test_deleting_all_automations_continues_past_the_first_page(
+    prefect_client: PrefectClient,
+):
+    await run_sync_in_worker_thread(
+        invoke_and_assert,
+        ["automations", "delete", "--all"],
+        expected_code=0,
+        prompts_and_responses=[
+            ("Are you sure you want to delete all 5 automations?", "y"),
+        ],
+        expected_output_contains="Deleted 5 automations.",
+    )
+    assert await prefect_client.read_automations() == []
 
 
 @pytest.fixture
