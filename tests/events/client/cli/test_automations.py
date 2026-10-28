@@ -1,16 +1,14 @@
 import sys
 from datetime import timedelta
-from typing import TYPE_CHECKING, Generator, List
+from typing import Any, Generator, List
 from unittest import mock
 from uuid import UUID, uuid4
-
-if TYPE_CHECKING:
-    from prefect.client.orchestration import PrefectClient
 
 import orjson
 import pytest
 import yaml
 
+from prefect.client.orchestration import PrefectClient
 from prefect.events.actions import CancelFlowRun, DoNothing, PauseAutomation
 from prefect.events.schemas.automations import (
     Automation,
@@ -928,12 +926,35 @@ def test_creating_multiple_automations_with_partial_failure(
     assert create_automation.await_count == 2
 
 
+def _serve_automations_until_deleted(
+    read_automations: mock.AsyncMock,
+    delete_automation: mock.AsyncMock,
+    automations: List[Automation],
+) -> None:
+    """Honor offset, and drop rows once delete has been called for their id."""
+    deleted_ids: set[UUID] = set()
+
+    def read(self: object, *, offset: int = 0, **_kwargs: object) -> List[Automation]:
+        remaining = [
+            automation for automation in automations if automation.id not in deleted_ids
+        ]
+        return remaining[offset:]
+
+    def delete(self: object, automation_id: UUID) -> None:
+        deleted_ids.add(automation_id)
+
+    read_automations.side_effect = read
+    delete_automation.side_effect = delete
+
+
 def test_deleting_all_automations(
     delete_automation: mock.AsyncMock,
     read_automations: mock.AsyncMock,
     various_automations: List[Automation],
 ):
-    read_automations.return_value = various_automations
+    _serve_automations_until_deleted(
+        read_automations, delete_automation, various_automations
+    )
     invoke_and_assert(
         ["automations", "delete", "--all"],
         prompts_and_responses=[
@@ -954,7 +975,9 @@ def test_deleting_all_automations_aborted(
     read_automations: mock.AsyncMock,
     various_automations: List[Automation],
 ):
-    read_automations.return_value = various_automations
+    _serve_automations_until_deleted(
+        read_automations, delete_automation, various_automations
+    )
     invoke_and_assert(
         ["automations", "delete", "--all"],
         prompts_and_responses=[
@@ -1018,6 +1041,55 @@ def test_deleting_all_automations_with_id_errors(
     )
 
     delete_automation.assert_not_called()
+
+
+@pytest.mark.clear_db
+async def test_deleting_all_automations_continues_past_the_first_page(
+    prefect_client: PrefectClient,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """`--all` deletes every automation when the server returns more than one page."""
+    for index in range(5):
+        await prefect_client.create_automation(
+            AutomationCore(
+                name=f"paged-automation-{index}",
+                enabled=True,
+                trigger=EventTrigger(
+                    posture=Posture.Reactive,
+                    expect={f"event.page.{index}"},
+                    threshold=1,
+                ),
+                actions=[DoNothing()],
+            )
+        )
+
+    original_read_automations = PrefectClient.read_automations
+    calls = 0
+
+    async def read_automations(
+        self: PrefectClient, *, offset: int = 0, **kwargs: Any
+    ) -> list[Automation]:
+        nonlocal calls
+        rows = await original_read_automations(self, **kwargs)
+        if rows:
+            shift = calls % len(rows)
+            calls += 1
+            rows = rows[shift:] + rows[:shift]
+        return rows[offset : offset + 2]
+
+    monkeypatch.setattr(PrefectClient, "read_automations", read_automations)
+
+    await run_sync_in_worker_thread(
+        invoke_and_assert,
+        ["automations", "delete", "--all"],
+        prompts_and_responses=[
+            ("Are you sure you want to delete all 5 automations?", "y"),
+        ],
+        expected_code=0,
+        expected_output_contains="Deleted 5 automations.",
+    )
+
+    assert await original_read_automations(prefect_client) == []
 
 
 @pytest.fixture
